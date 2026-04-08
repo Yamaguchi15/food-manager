@@ -35,7 +35,8 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.form {
+.form,
+.image-upload-area {
   display: grid;
   gap: 16px;
 }
@@ -52,15 +53,23 @@ body {
   font-size: 16px;
 }
 
+.file-input {
+  display: none;
+}
+
+.file-label,
 .submit-button,
 .delete-button {
+  display: inline-block;
   border: none;
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 14px;
   cursor: pointer;
+  text-align: center;
 }
 
+.file-label,
 .submit-button {
   background: #2563eb;
   color: white;
@@ -69,6 +78,25 @@ body {
 .delete-button {
   background: #ef4444;
   color: white;
+}
+
+.file-name {
+  margin: 0;
+  color: #444;
+}
+
+.preview-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fafafa;
+}
+
+.preview-image {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .item-list {
@@ -114,4 +142,50 @@ body {
 .expired {
   color: #dc2626;
   font-weight: bold;
+}
+
+.secondary-button {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  background: white;
+  color: #222;
+}
+
+.status-text {
+  margin: 0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.ocr-result-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fafafa;
+}
+
+.ocr-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ocr-result-header h3 {
+  margin: 0;
+}
+
+.ocr-textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
 }
