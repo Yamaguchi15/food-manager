@@ -305,3 +305,126 @@ body {
   background: #2563eb;
   color: white;
 }
+
+.candidate-list {
+  margin-top: 16px;
+}
+
+.candidate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.candidate-button {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #e0f2fe;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.candidate-button:hover {
+  background: #bae6fd;
+}
+
+.quick-add-button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #22c55e;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.quick-add-button:hover {
+  background: #16a34a;
+}
+
+.ocr-button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.ocr-button:hover {
+  background: #1d4ed8;
+}
+
+.candidate-list {
+  margin-top: 16px;
+}
+
+.ocr-form-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ocr-form-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1.2fr 1.8fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.ocr-form-input {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.ocr-add-button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #22c55e;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ocr-add-button:hover {
+  background: #16a34a;
+}
+
+.ocr-button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.ocr-button:hover {
+  background: #1d4ed8;
+}

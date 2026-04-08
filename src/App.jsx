@@ -4,6 +4,7 @@ import "./App.css";
 import recipes from "./recipes";
 import foodShelfLife from "./foodShelfLife";
 import foodDictionary from "./foodDictionary";
+import foodAlias from "./foodAlias";
 
 function App() {
   const [name, setName] = useState("");
@@ -21,15 +22,14 @@ function App() {
   const [ocrText, setOcrText] = useState("");
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrStatus, setOcrStatus] = useState("");
+  const [ocrCandidates, setOcrCandidates] = useState([]);
 
   const workerRef = useRef(null);
 
-  // LocalStorage保存
   useEffect(() => {
     localStorage.setItem("food-items", JSON.stringify(items));
   }, [items]);
 
-  // 画像プレビュー
   useEffect(() => {
     if (!imageFile) {
       setImagePreview("");
@@ -42,7 +42,6 @@ function App() {
     return () => URL.revokeObjectURL(objectUrl);
   }, [imageFile]);
 
-  // OCR worker初期化（1回だけ）
   useEffect(() => {
     const initWorker = async () => {
       try {
@@ -67,6 +66,59 @@ function App() {
       workerRef.current?.terminate();
     };
   }, []);
+
+  const normalizeText = (text) =>
+    String(text || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .replace(/[ァ-ン]/g, (s) =>
+        String.fromCharCode(s.charCodeAt(0) - 0x60)
+      );
+
+  const createExpiryDateFromDays = (days) => {
+    const today = new Date();
+    const target = new Date(today);
+    target.setDate(today.getDate() + days);
+
+    const yyyy = target.getFullYear();
+    const mm = String(target.getMonth() + 1).padStart(2, "0");
+    const dd = String(target.getDate()).padStart(2, "0");
+
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const resolveCandidate = (candidate) => {
+    const safeCandidate = String(candidate || "").trim();
+    if (!safeCandidate) return null;
+
+    const normalizedCandidate = normalizeText(safeCandidate);
+
+    const matchedKey = Object.keys(foodShelfLife || {}).find((key) => {
+      const normalizedKey = normalizeText(key);
+      return (
+        normalizedCandidate === normalizedKey ||
+        normalizedCandidate.includes(normalizedKey) ||
+        normalizedKey.includes(normalizedCandidate)
+      );
+    });
+
+    const selectedName = matchedKey || safeCandidate;
+
+    if (foodAlias[selectedName]) {
+      selectedName = foodAlias[selectedName];
+    }
+
+    let resolvedExpiryDate = "";
+    if (matchedKey && foodShelfLife[matchedKey]?.days != null) {
+      resolvedExpiryDate = createExpiryDateFromDays(foodShelfLife[matchedKey].days);
+    }
+
+    return {
+      name: selectedName,
+      expiryDate: resolvedExpiryDate,
+      memo: "",
+    };
+  };
 
   const preprocessImage = (file) => {
     return new Promise((resolve, reject) => {
@@ -120,7 +172,6 @@ function App() {
     });
   };
 
-  // OCR実行
   const handleRunOcr = async () => {
     if (!imageFile) {
       alert("先に画像を選択してください");
@@ -152,26 +203,120 @@ function App() {
     }
   };
 
-  // OCR → 食材候補抽出
-const candidateFoods = useMemo(() => {
-  if (!ocrText.trim()) return [];
+  const candidateFoods = useMemo(() => {
+    if (!ocrText.trim()) return [];
 
-  const normalizeText = (text) =>
-    text
-      .replace(/\s+/g, "")
-      .replace(/[ァ-ン]/g, (s) =>
-        String.fromCharCode(s.charCodeAt(0) - 0x60)
+    const normalizedOcrText = normalizeText(ocrText);
+
+    const matchedFoods = foodDictionary.filter((food) => {
+      const normalizedFood = normalizeText(food);
+      return normalizedOcrText.includes(normalizedFood);
+    });
+
+    return [...new Set(matchedFoods)].slice(0, 8);
+  }, [ocrText]);
+
+  useEffect(() => {
+    const mapped = candidateFoods
+      .map((candidate) => resolveCandidate(candidate))
+      .filter(Boolean);
+
+    setOcrCandidates(mapped);
+  }, [candidateFoods]);
+
+  const handleChangeOcrCandidate = (index, field, value) => {
+    setOcrCandidates((prev) =>
+      prev.map((item, i) =>
+        i === index
+          ? {
+            ...item,
+            [field]: value,
+          }
+          : item
+      )
+    );
+  };
+
+  const handleAddOcrCandidate = (candidate) => {
+    if (!candidate.name || !candidate.expiryDate) {
+      alert("食品名と期限を確認してください");
+      return;
+    }
+
+    const newItem = {
+      id: crypto.randomUUID(),
+      name: candidate.name,
+      expiryDate: candidate.expiryDate,
+      memo: candidate.memo || "",
+    };
+
+    setItems((prev) => [...prev, newItem]);
+  };
+
+  const handleSelectCandidate = (candidate) => {
+    const resolved = resolveCandidate(candidate);
+    if (!resolved) return;
+
+    setName(resolved.name);
+    setExpiryDate(resolved.expiryDate);
+    setMemo(resolved.memo || "");
+    setEditingId(null);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!name || !expiryDate) {
+      alert("入力してください");
+      return;
+    }
+
+    if (editingId) {
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === editingId
+            ? {
+              ...item,
+              name,
+              expiryDate,
+              memo,
+            }
+            : item
+        )
       );
+      setEditingId(null);
+    } else {
+      const newItem = {
+        id: crypto.randomUUID(),
+        name,
+        expiryDate,
+        memo,
+      };
 
-  const normalizedOcrText = normalizeText(ocrText);
+      setItems((prev) => [...prev, newItem]);
+    }
 
-  const matchedFoods = foodDictionary.filter((food) => {
-    const normalizedFood = normalizeText(food);
-    return normalizedOcrText.includes(normalizedFood);
-  });
+    setName("");
+    setExpiryDate("");
+    setMemo("");
+  };
 
-  return [...new Set(matchedFoods)].slice(0, 8);
-}, [ocrText]);
+  const handleDelete = (id) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleEdit = (item) => {
+    setName(item.name);
+    setExpiryDate(item.expiryDate);
+    setMemo(item.memo || "");
+    setEditingId(item.id);
+  };
+
+  const sortedItems = useMemo(() => {
+    return [...items].sort(
+      (a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)
+    );
+  }, [items]);
 
   const suggestedRecipes = useMemo(() => {
     if (items.length === 0) return [];
@@ -230,106 +375,6 @@ const candidateFoods = useMemo(() => {
       .slice(0, 5);
   }, [items]);
 
-const normalizeName = (text) =>
-  text
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[ァ-ン]/g, (s) =>
-      String.fromCharCode(s.charCodeAt(0) - 0x60)
-    );
-
-const handleSelectCandidate = (candidate) => {
-  const safeCandidate = String(candidate || "").trim();
-  if (!safeCandidate) return;
-
-  const normalizedCandidate = normalizeName(safeCandidate);
-
-  const matchedKey = Object.keys(foodShelfLife || {}).find((key) => {
-    const normalizedKey = normalizeName(key);
-    return (
-      normalizedCandidate === normalizedKey ||
-      normalizedCandidate.includes(normalizedKey) ||
-      normalizedKey.includes(normalizedCandidate)
-    );
-  });
-
-  const selectedName = matchedKey || safeCandidate;
-  setName(selectedName);
-
-  if (matchedKey && foodShelfLife[matchedKey]?.days != null) {
-    const { days } = foodShelfLife[matchedKey];
-
-    const today = new Date();
-    const target = new Date(today);
-    target.setDate(today.getDate() + days);
-
-    const yyyy = target.getFullYear();
-    const mm = String(target.getMonth() + 1).padStart(2, "0");
-    const dd = String(target.getDate()).padStart(2, "0");
-
-    setExpiryDate(`${yyyy}-${mm}-${dd}`);
-  } else {
-    setExpiryDate("");
-  }
-
-  setEditingId(null);
-};
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    if (!name || !expiryDate) {
-      alert("入力してください");
-      return;
-    }
-
-    if (editingId) {
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === editingId
-            ? {
-              ...item,
-              name,
-              expiryDate,
-              memo,
-            }
-            : item
-        )
-      );
-      setEditingId(null);
-    } else {
-      const newItem = {
-        id: crypto.randomUUID(),
-        name,
-        expiryDate,
-        memo,
-      };
-
-      setItems((prev) => [...prev, newItem]);
-    }
-
-    setName("");
-    setExpiryDate("");
-    setMemo("");
-  };
-
-  const handleDelete = (id) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const handleEdit = (item) => {
-    setName(item.name);
-    setExpiryDate(item.expiryDate);
-    setMemo(item.memo || "");
-    setEditingId(item.id);
-  };
-
-  const sortedItems = useMemo(() => {
-    return [...items].sort(
-      (a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)
-    );
-  }, [items]);
-
   const getDaysLeft = (date) => {
     const today = new Date();
     const target = new Date(date);
@@ -354,8 +399,8 @@ const handleSelectCandidate = (candidate) => {
             onChange={(e) => setImageFile(e.target.files[0])}
           />
 
-          <button type="button" onClick={handleRunOcr}>
-            {isOcrLoading ? "解析中..." : "OCR実行"}
+          <button type="button" className="ocr-button" onClick={handleRunOcr}>
+            {isOcrLoading ? "読み取り中..." : "レシート読み込み"}
           </button>
 
           <p>{ocrStatus}</p>
@@ -370,25 +415,50 @@ const handleSelectCandidate = (candidate) => {
             </div>
           )}
 
-          {ocrText && (
-            <textarea
-              value={ocrText}
-              onChange={(e) => setOcrText(e.target.value)}
-            />
-          )}
 
-          {candidateFoods.length > 0 ? (
-            <div>
+          {ocrCandidates.length > 0 ? (
+            <div className="candidate-list">
               <h3>候補</h3>
-              {candidateFoods.map((c, index) => (
-                <button
-                  key={`${c}-${index}`}
-                  type="button"
-                  onClick={() => handleSelectCandidate(c)}
-                >
-                  {c}
-                </button>
-              ))}
+
+              <div className="ocr-form-list">
+                {ocrCandidates.map((candidate, index) => (
+                  <div key={`${candidate.name}-${index}`} className="ocr-form-row">
+                    <input
+                      className="ocr-form-input"
+                      value={candidate.name}
+                      onChange={(e) =>
+                        handleChangeOcrCandidate(index, "name", e.target.value)
+                      }
+                    />
+
+                    <input
+                      className="ocr-form-input"
+                      type="date"
+                      value={candidate.expiryDate}
+                      onChange={(e) =>
+                        handleChangeOcrCandidate(index, "expiryDate", e.target.value)
+                      }
+                    />
+
+                    <input
+                      className="ocr-form-input"
+                      placeholder="メモ"
+                      value={candidate.memo}
+                      onChange={(e) =>
+                        handleChangeOcrCandidate(index, "memo", e.target.value)
+                      }
+                    />
+
+                    <button
+                      type="button"
+                      className="ocr-add-button"
+                      onClick={() => handleAddOcrCandidate(candidate)}
+                    >
+                      追加
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <p className="empty">
@@ -400,20 +470,23 @@ const handleSelectCandidate = (candidate) => {
         <section className="card">
           <h2>追加</h2>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="add-form">
             <input
-              placeholder="食材名"
+              className="add-input"
+              placeholder="食品名"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
 
             <input
+              className="add-input"
               type="date"
               value={expiryDate}
               onChange={(e) => setExpiryDate(e.target.value)}
             />
 
             <input
+              className="add-input"
               placeholder="メモ"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
