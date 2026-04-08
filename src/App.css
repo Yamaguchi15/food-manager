@@ -99,59 +99,8 @@ body {
   border-radius: 8px;
 }
 
-.item-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 12px;
-}
-
-.item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-}
-
-.item h3 {
-  margin: 0 0 8px;
-}
-
-.item p {
-  margin: 4px 0;
-}
-
 .empty {
   color: #666;
-}
-
-.safe {
-  color: #15803d;
-  font-weight: bold;
-}
-
-.warning {
-  color: #d97706;
-  font-weight: bold;
-}
-
-.expired {
-  color: #dc2626;
-  font-weight: bold;
-}
-
-.secondary-button {
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 14px;
-  cursor: pointer;
-  background: white;
-  color: #222;
 }
 
 .status-text {
@@ -160,60 +109,93 @@ body {
   font-size: 14px;
 }
 
-.ocr-result-box {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 12px;
-  background: #fafafa;
-}
-
-.ocr-result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.ocr-result-header h3 {
-  margin: 0;
-}
-
-.ocr-textarea {
-  width: 100%;
-  min-height: 180px;
-  resize: vertical;
-  padding: 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
+.ocr-button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
   font-size: 14px;
-  line-height: 1.5;
+  font-weight: 600;
+  margin-top: 10px;
 }
 
-.candidate-box {
+.ocr-button:hover {
+  background: #1d4ed8;
+}
+
+/* OCR候補欄 */
+.candidate-list {
   margin-top: 16px;
 }
 
-.candidate-box h3 {
-  margin: 0 0 12px;
-}
-
-.candidate-list {
+.ocr-form-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
+  margin-top: 10px;
 }
 
-.candidate-button {
-  border: 1px solid #93c5fd;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-radius: 999px;
+.ocr-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.ocr-form-input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.ocr-add-button {
   padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #22c55e;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.ocr-add-button:hover {
+  background: #16a34a;
+}
+
+/* 通常追加フォーム */
+.add-form {
+  display: grid;
+  grid-template-columns: 2fr 1.4fr 2fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.add-input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
   font-size: 14px;
 }
 
+.submit-button:hover {
+  background: #1d4ed8;
+}
+
+/* レシピ */
 .recipe-list {
   list-style: none;
   padding: 0;
@@ -235,21 +217,6 @@ body {
 
 .recipe-item p {
   margin: 4px 0;
-}
-
-.expired {
-  color: #dc2626;
-  font-weight: bold;
-}
-
-.warning {
-  color: #f59e0b;
-  font-weight: bold;
-}
-
-.safe {
-  color: #16a34a;
-  font-weight: bold;
 }
 
 .recipe-title-row {
@@ -278,11 +245,31 @@ body {
   color: #b45309;
 }
 
+/* 一覧 */
+.item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
 .item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.item h3 {
+  margin: 0 0 8px;
+}
+
+.item p {
+  margin: 4px 0;
 }
 
 .item-left {
@@ -306,125 +293,63 @@ body {
   color: white;
 }
 
-.candidate-list {
-  margin-top: 16px;
+.safe {
+  color: #16a34a;
+  font-weight: bold;
 }
 
-.candidate-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+.warning {
+  color: #f59e0b;
+  font-weight: bold;
 }
 
-.candidate-button {
-  flex: 1;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  background: #e0f2fe;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
+.expired {
+  color: #dc2626;
+  font-weight: bold;
 }
 
-.candidate-button:hover {
-  background: #bae6fd;
-}
+/* スマホ対応 */
+@media (max-width: 600px) {
+  .app {
+    padding: 12px;
+  }
 
-.quick-add-button {
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  background: #22c55e;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-}
+  .card {
+    padding: 14px;
+  }
 
-.quick-add-button:hover {
-  background: #16a34a;
-}
+  .ocr-form-row {
+    grid-template-columns: 1fr;
+  }
 
-.ocr-button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 10px;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 10px;
-}
+  .ocr-form-input {
+    font-size: 12px;
+    padding: 8px;
+  }
 
-.ocr-button:hover {
-  background: #1d4ed8;
-}
+  .ocr-add-button {
+    width: 100%;
+  }
 
-.candidate-list {
-  margin-top: 16px;
-}
+  .add-form {
+    grid-template-columns: 1fr;
+  }
 
-.ocr-form-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
+  .submit-button {
+    width: 100%;
+  }
 
-.ocr-form-row {
-  display: grid;
-  grid-template-columns: 1.6fr 1.2fr 1.8fr auto;
-  gap: 10px;
-  align-items: center;
-  padding: 10px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-}
+  .item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-.ocr-form-input {
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-}
+  .item-actions {
+    width: 100%;
+  }
 
-.ocr-add-button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 10px;
-  background: #22c55e;
-  color: white;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.ocr-add-button:hover {
-  background: #16a34a;
-}
-
-.ocr-button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 10px;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  margin-top: 10px;
-}
-
-.ocr-button:hover {
-  background: #1d4ed8;
+  .edit-button,
+  .delete-button {
+    flex: 1;
+  }
 }
