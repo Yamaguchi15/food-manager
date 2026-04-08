@@ -226,9 +226,9 @@ function App() {
       prev.map((item, i) =>
         i === index
           ? {
-              ...item,
-              [field]: value,
-            }
+            ...item,
+            [field]: value,
+          }
           : item
       )
     );
@@ -247,6 +247,29 @@ function App() {
     };
 
     setItems((prev) => [...prev, newItem]);
+  };
+
+  const handleDeleteOcrCandidate = (index) => {
+    setOcrCandidates((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddAllOcrCandidates = () => {
+    const valid = ocrCandidates.filter(
+      (c) => c.name && c.expiryDate
+    );
+
+    if (valid.length === 0) return;
+
+    const newItems = valid.map((c) => ({
+      id: crypto.randomUUID(),
+      name: c.name,
+      expiryDate: c.expiryDate,
+    }));
+
+    setItems((prev) => [...prev, ...newItems]);
+
+    // 全削除
+    setOcrCandidates([]);
   };
 
   const handleSelectCandidate = (candidate) => {
@@ -271,10 +294,10 @@ function App() {
         prev.map((item) =>
           item.id === editingId
             ? {
-                ...item,
-                name,
-                expiryDate,
-              }
+              ...item,
+              name,
+              expiryDate,
+            }
             : item
         )
       );
@@ -408,7 +431,16 @@ function App() {
 
           {ocrCandidates.length > 0 ? (
             <div className="candidate-list">
-              <h3>候補</h3>
+              <div className="candidate-header">
+                <h3>候補</h3>
+                <button
+                  type="button"
+                  className="add-all-button"
+                  onClick={handleAddAllOcrCandidates}
+                >
+                  すべて追加
+                </button>
+              </div>
 
               <div className="ocr-form-list">
                 {ocrCandidates.map((candidate, index) => (
@@ -442,13 +474,23 @@ function App() {
                       }
                     />
 
-                    <button
-                      type="button"
-                      className="ocr-add-button"
-                      onClick={() => handleAddOcrCandidate(candidate)}
-                    >
-                      追加
-                    </button>
+                    <div className="ocr-button-group">
+                      <button
+                        type="button"
+                        className="ocr-add-button"
+                        onClick={() => handleAddOcrCandidate(candidate)}
+                      >
+                        追加
+                      </button>
+
+                      <button
+                        type="button"
+                        className="ocr-delete-button"
+                        onClick={() => handleDeleteOcrCandidate(index)}
+                      >
+                        削除
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -538,8 +580,8 @@ function App() {
                       {days < 0
                         ? `${Math.abs(days)}日過ぎてます`
                         : days === 0
-                        ? "今日まで"
-                        : `あと${days}日`}
+                          ? "今日まで"
+                          : `あと${days}日`}
                     </p>
                   </div>
 

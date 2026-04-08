@@ -369,3 +369,55 @@ body {
   background: #1d4ed8;
 }
 
+
+.candidate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.add-all-button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #4caf50;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.candidate-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #fff;
+}
+
+.candidate-card input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.candidate-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.candidate-buttons button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.delete-button {
+  background: #f44336;
+  color: white;
+}
