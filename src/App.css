@@ -421,3 +421,79 @@ body {
   background: #f44336;
   color: white;
 }
+
+.ocr-form-row {
+  display: flex;
+  gap: 6px;
+}
+
+.ocr-form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 👇ここ重要 */
+.ocr-form-input[type="text"] {
+  flex: 1.5;   /* 食品名は少し広め */
+}
+
+.ocr-form-input[type="date"] {
+  flex: 1;     /* 日付は小さめ */
+}
+
+/* ボタンは固定幅 */
+.ocr-add-button,
+.ocr-delete-button {
+  flex: none;
+  width: 60px;
+  font-size: 12px;
+  padding: 6px;
+}
+
+.ocr-form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ocr-form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 日付は少し小さく */
+.ocr-form-input[type="date"] {
+  flex: 0.9;
+}
+
+/* 👇ここが重要 */
+.ocr-button-group {
+  display: flex;
+  gap: 6px;
+  margin-left: auto; /* ← 右に押し出す */
+}
+
+/* ボタンサイズ揃える */
+.ocr-add-button,
+.ocr-delete-button {
+  width: 60px;
+  flex: none;
+  padding: 6px;
+  font-size: 12px;
+}
+
+.ocr-add-button,
+.ocr-delete-button {
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.ocr-add-button:hover {
+  background: #7cb342;
+}
+
+.ocr-delete-button:hover {
+  background: #d32f2f;
+}
