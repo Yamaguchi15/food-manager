@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { createWorker } from "tesseract.js";
 import "./App.css";
+import recipes from "./recipes";
 
 function App() {
   const [name, setName] = useState("");
@@ -106,6 +107,30 @@ function App() {
       .slice(0, 10);
   }, [ocrText]);
 
+  const suggestedRecipes = useMemo(() => {
+  if (items.length === 0) return [];
+
+  const itemNames = items.map((item) => item.name.trim());
+
+  return recipes
+    .map((recipe) => {
+      const matchedIngredients = recipe.ingredients.filter((ingredient) =>
+        itemNames.some((itemName) => itemName.includes(ingredient) || ingredient.includes(itemName))
+      );
+
+      const score = matchedIngredients.length / recipe.ingredients.length;
+
+      return {
+        ...recipe,
+        matchedIngredients,
+        score,
+      };
+    })
+    .filter((recipe) => recipe.matchedIngredients.length > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}, [items]);
+
   const handleSelectCandidate = (c) => {
     setName(c);
   };
@@ -153,93 +178,111 @@ function App() {
 
   return (
     <div className="app">
-      <div className="container">
-        <h1>Food Manager</h1>
+<div className="container">
+  <h1>Food Manager</h1>
 
-        <section className="card">
-          <h2>OCR</h2>
+  <section className="card">
+    <h2>OCR</h2>
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files[0])}
-          />
+    <input
+      type="file"
+      accept="image/*"
+      onChange={(e) => setImageFile(e.target.files[0])}
+    />
 
-          <button onClick={handleRunOcr}>
-            {isOcrLoading ? "解析中..." : "OCR実行"}
+    <button onClick={handleRunOcr}>
+      {isOcrLoading ? "解析中..." : "OCR実行"}
+    </button>
+
+    <p>{ocrStatus}</p>
+
+    {ocrText && (
+      <textarea
+        value={ocrText}
+        onChange={(e) => setOcrText(e.target.value)}
+      />
+    )}
+
+    {candidateFoods.length > 0 && (
+      <div>
+        <h3>候補</h3>
+        {candidateFoods.map((c) => (
+          <button key={c} onClick={() => handleSelectCandidate(c)}>
+            {c}
           </button>
-
-          <p>{ocrStatus}</p>
-
-          {ocrText && (
-            <textarea
-              value={ocrText}
-              onChange={(e) => setOcrText(e.target.value)}
-            />
-          )}
-
-          {candidateFoods.length > 0 && (
-            <div>
-              <h3>候補</h3>
-              {candidateFoods.map((c) => (
-                <button key={c} onClick={() => handleSelectCandidate(c)}>
-                  {c}
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="card">
-          <h2>追加</h2>
-
-          <form onSubmit={handleSubmit}>
-            <input
-              placeholder="食材名"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <input
-              type="date"
-              value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
-            />
-
-            <input
-              placeholder="メモ"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-            />
-
-            <button type="submit">追加</button>
-          </form>
-        </section>
-
-        <section className="card">
-          <h2>一覧</h2>
-
-          {sortedItems.map((item) => {
-            const days = getDaysLeft(item.expiryDate);
-
-            return (
-              <div key={item.id}>
-                <h3>{item.name}</h3>
-                <p>{item.expiryDate}</p>
-                <p>
-                  {days < 0
-                    ? "期限切れ"
-                    : days === 0
-                    ? "今日"
-                    : `${days}日`}
-                </p>
-
-                <button onClick={() => handleDelete(item.id)}>削除</button>
-              </div>
-            );
-          })}
-        </section>
+        ))}
       </div>
+    )}
+  </section>
+
+  <section className="card">
+    <h2>追加</h2>
+
+    <form onSubmit={handleSubmit}>
+      <input
+        placeholder="食材名"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+
+      <input
+        type="date"
+        value={expiryDate}
+        onChange={(e) => setExpiryDate(e.target.value)}
+      />
+
+      <input
+        placeholder="メモ"
+        value={memo}
+        onChange={(e) => setMemo(e.target.value)}
+      />
+
+      <button type="submit">追加</button>
+    </form>
+  </section>
+
+  <section className="card">
+    <h2>おすすめレシピ</h2>
+
+    {suggestedRecipes.length === 0 ? (
+      <p className="empty">
+        登録された食材から提案できるレシピはまだありません。
+      </p>
+    ) : (
+      <ul className="recipe-list">
+        {suggestedRecipes.map((recipe) => (
+          <li key={recipe.id} className="recipe-item">
+            <h3>{recipe.name}</h3>
+            <p>{recipe.description}</p>
+            <p>必要食材: {recipe.ingredients.join("、")}</p>
+            <p>一致した食材: {recipe.matchedIngredients.join("、")}</p>
+            <p>一致率: {Math.round(recipe.score * 100)}%</p>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  <section className="card">
+    <h2>一覧</h2>
+
+    {sortedItems.map((item) => {
+      const days = getDaysLeft(item.expiryDate);
+
+      return (
+        <div key={item.id}>
+          <h3>{item.name}</h3>
+          <p>{item.expiryDate}</p>
+          <p>
+            {days < 0 ? "期限切れ" : days === 0 ? "今日" : `${days}日`}
+          </p>
+
+          <button onClick={() => handleDelete(item.id)}>削除</button>
+        </div>
+      );
+    })}
+  </section>
+</div>
     </div>
   );
 }
