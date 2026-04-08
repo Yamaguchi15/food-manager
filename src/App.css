@@ -4,337 +4,368 @@
 
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
-  background: #f7f8fa;
-  color: #333;
-}
-
-#root {
-  width: 100%;
+  font-family: Arial, sans-serif;
+  background: #f5f7fb;
+  color: #222;
 }
 
 .app {
-  width: 100%;
-  max-width: 480px;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.container {
+  max-width: 800px;
   margin: 0 auto;
-  padding: 12px;
 }
 
-h1,
-h2,
-h3 {
-  margin: 0 0 12px;
-  line-height: 1.4;
+.header {
+  margin-bottom: 24px;
 }
 
-.section {
-  background: #fff;
+.header h1 {
+  margin-bottom: 8px;
+}
+
+.card {
+  background: white;
   border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-input,
-textarea,
-button,
-select {
-  font: inherit;
+.form,
+.image-upload-area {
+  display: grid;
+  gap: 16px;
 }
 
-input,
-textarea,
-select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d8dce3;
+.form-group {
+  display: grid;
+  gap: 8px;
+}
+
+.form-group input {
+  padding: 10px;
+  border: 1px solid #ccc;
   border-radius: 8px;
-  background: #fff;
+  font-size: 16px;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: #7aa7ff;
-  box-shadow: 0 0 0 3px rgba(122, 167, 255, 0.15);
+.file-input {
+  display: none;
 }
 
-button {
+.file-label,
+.submit-button,
+.delete-button {
+  display: inline-block;
   border: none;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 10px 14px;
+  font-size: 14px;
   cursor: pointer;
-  font-weight: 600;
+  text-align: center;
 }
 
-button:hover {
-  opacity: 0.95;
+.file-label,
+.submit-button {
+  background: #2563eb;
+  color: white;
 }
 
-button:active {
-  transform: scale(0.98);
+.delete-button {
+  background: #ef4444;
+  color: white;
 }
 
-/* 通常ボタン */
-.primary-button {
-  background: #4f8cff;
-  color: #fff;
+.file-name {
+  margin: 0;
+  color: #444;
+}
+
+.preview-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fafafa;
+}
+
+.preview-image {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.item-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.item h3 {
+  margin: 0 0 8px;
+}
+
+.item p {
+  margin: 4px 0;
+}
+
+.empty {
+  color: #666;
+}
+
+.safe {
+  color: #15803d;
+  font-weight: bold;
+}
+
+.warning {
+  color: #d97706;
+  font-weight: bold;
+}
+
+.expired {
+  color: #dc2626;
+  font-weight: bold;
 }
 
 .secondary-button {
-  background: #eef2f7;
-  color: #333;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  background: white;
+  color: #222;
 }
 
-.danger-button {
-  background: #ff6b6b;
-  color: #fff;
-}
-
-.small-button {
-  padding: 8px 10px;
-  font-size: 13px;
-}
-
-/* フォーム共通 */
-.form-group {
-  margin-bottom: 10px;
-}
-
-.form-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #555;
-}
-
-/* 食材登録フォーム */
-.food-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* 食材一覧 */
-.food-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.food-item {
-  background: #fff;
-  border: 1px solid #e6eaf0;
-  border-radius: 10px;
-  padding: 10px;
-}
-
-.food-item-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.food-name {
-  font-weight: 700;
-  font-size: 15px;
-  word-break: break-word;
-}
-
-.food-date {
-  font-size: 13px;
-  color: #666;
-  margin-top: 4px;
-}
-
-.food-memo {
-  font-size: 13px;
-  color: #555;
-  margin-top: 6px;
-  white-space: pre-wrap;
-}
-
-.food-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.food-item.expired {
-  border-left: 5px solid #ff6b6b;
-}
-
-.food-item.warning {
-  border-left: 5px solid #ffa94d;
-}
-
-.food-item.safe {
-  border-left: 5px solid #51cf66;
-}
-
-/* OCR関連 */
-.ocr-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.ocr-file-input {
+.status-text {
+  margin: 0;
+  color: #334155;
   font-size: 14px;
 }
 
-/* OCR候補全体 */
-.ocr-candidates {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
+.ocr-result-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fafafa;
 }
 
-/* 1候補 */
-.ocr-candidate-item {
-  display: grid;
-  grid-template-columns: 1.6fr 1.2fr 72px;
-  gap: 6px;
-  align-items: center;
-  background: #f8f9fc;
-  border: 1px solid #e3e8f0;
-  border-radius: 10px;
-  padding: 8px;
-  width: 100%;
-}
-
-/* 候補内のinput */
-.ocr-candidate-item input {
-  min-width: 0;
-  width: 100%;
-  padding: 8px 10px;
-  font-size: 13px;
-  height: 38px;
-}
-
-/* 追加ボタン */
-.ocr-add-button {
-  height: 38px;
-  padding: 0 8px;
-  font-size: 13px;
-  white-space: nowrap;
-  background: #4f8cff;
-  color: #fff;
-  border-radius: 8px;
-}
-
-/* プレースホルダを少し見やすく */
-.ocr-candidate-item input::placeholder {
-  color: #9aa3af;
-  font-size: 12px;
-}
-
-/* レシピ提案 */
-.recipe-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.recipe-item {
-  background: #fff;
-  border: 1px solid #e6eaf0;
-  border-radius: 10px;
-  padding: 10px;
-}
-
-.recipe-title {
-  font-weight: 700;
-  margin-bottom: 6px;
-}
-
-.recipe-foods {
-  font-size: 13px;
-  color: #555;
-  margin-bottom: 4px;
-}
-
-.recipe-score {
-  font-size: 12px;
-  color: #777;
-}
-
-/* 横並び汎用 */
-.row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.row-between {
+.ocr-result-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ocr-result-header h3 {
+  margin: 0;
+}
+
+.ocr-textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.candidate-box {
+  margin-top: 16px;
+}
+
+.candidate-box h3 {
+  margin: 0 0 12px;
+}
+
+.candidate-list {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-/* スマホ最適化 */
-@media (max-width: 480px) {
-  .app {
-    padding: 10px;
-  }
-
-  .section {
-    padding: 10px;
-    border-radius: 10px;
-  }
-
-  h1 {
-    font-size: 22px;
-  }
-
-  h2 {
-    font-size: 18px;
-  }
-
-  .ocr-candidate-item {
-    grid-template-columns: 1.4fr 1fr 64px;
-    gap: 5px;
-    padding: 6px;
-  }
-
-  .ocr-candidate-item input {
-    padding: 7px 8px;
-    font-size: 12px;
-    height: 34px;
-  }
-
-  .ocr-add-button {
-    height: 34px;
-    font-size: 12px;
-    padding: 0 6px;
-  }
-
-  .food-actions {
-    flex-direction: column;
-  }
+.candidate-button {
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
 }
 
-/* かなり小さい画面向け */
-@media (max-width: 360px) {
-  .ocr-candidate-item {
-    grid-template-columns: 1.2fr 1fr 58px;
-    gap: 4px;
-  }
-
-  .ocr-candidate-item input {
-    font-size: 11px;
-    padding: 6px 7px;
-  }
-
-  .ocr-add-button {
-    font-size: 11px;
-    padding: 0 4px;
-  }
+.recipe-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
 }
+
+.recipe-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fafafa;
+}
+
+.recipe-item h3 {
+  margin: 0 0 8px;
+}
+
+.recipe-item p {
+  margin: 4px 0;
+}
+
+.expired {
+  color: #dc2626;
+  font-weight: bold;
+}
+
+.warning {
+  color: #f59e0b;
+  font-weight: bold;
+}
+
+.safe {
+  color: #16a34a;
+  font-weight: bold;
+}
+
+.recipe-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.recipe-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.recipe-badge.urgent {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.recipe-badge.soon {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-button {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+.candidate-list {
+  margin-top: 16px;
+}
+
+.candidate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.candidate-button {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #e0f2fe;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.candidate-button:hover {
+  background: #bae6fd;
+}
+
+.quick-add-button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #22c55e;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.quick-add-button:hover {
+  background: #16a34a;
+}
+
+.ocr-button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.ocr-button:hover {
+  background: #1d4ed8;
+}
+
