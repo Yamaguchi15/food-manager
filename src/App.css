@@ -490,10 +490,68 @@ body {
   transition: 0.2s;
 }
 
-.ocr-add-button:hover {
-  background: #7cb342;
+.ocr-add-button {
+  background: #8bc34a; /* 常に黄緑 */
+  color: white;
 }
 
-.ocr-delete-button:hover {
-  background: #d32f2f;
+.ocr-delete-button {
+  background: #f44336; /* 常に赤 */
+  color: white;
+}
+
+.ocr-add-button,
+.ocr-delete-button {
+  height: 36px;        /* 指で押しやすい */
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+/* 行全体をコンパクトに */
+.ocr-form-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+/* 入力欄を小さく */
+.ocr-form-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px;
+  font-size: 12px;
+  height: 28px;
+}
+
+/* 日付はさらに小さく */
+.ocr-form-input[type="date"] {
+  flex: 0.9;
+}
+
+/* ボタンをかなり小さく */
+.ocr-add-button,
+.ocr-delete-button {
+  flex: none;
+  width: 48px;
+  height: 28px;
+  font-size: 11px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+/* ボタンを右寄せ */
+.ocr-button-group {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ocr-form-input[type="text"] {
+  flex: 0.7;   /* ← 今より小さく */
+  max-width: 120px; /* ← 上限もかけると安定 */
+}
+
+.ocr-form-input[type="date"] {
+  flex: 1;  /* 日付はそのまま or 少し広め */
 }
