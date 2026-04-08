@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { createWorker } from "tesseract.js";
 import "./App.css";
 
@@ -18,10 +18,14 @@ function App() {
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrStatus, setOcrStatus] = useState("");
 
+  const workerRef = useRef(null);
+
+  // LocalStorage保存
   useEffect(() => {
     localStorage.setItem("food-items", JSON.stringify(items));
   }, [items]);
 
+  // 画像プレビュー
   useEffect(() => {
     if (!imageFile) {
       setImagePreview("");
@@ -31,30 +35,94 @@ function App() {
     const objectUrl = URL.createObjectURL(imageFile);
     setImagePreview(objectUrl);
 
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-    };
+    return () => URL.revokeObjectURL(objectUrl);
   }, [imageFile]);
 
-  const sortedItems = useMemo(() => {
-    return [...items].sort(
-      (a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)
-    );
-  }, [items]);
+  // OCR worker初期化（1回だけ）
+  useEffect(() => {
+    const initWorker = async () => {
+      setOcrStatus("OCRエンジン準備中...");
+      workerRef.current = await createWorker("jpn+eng", 1, {
+        logger: (m) => {
+          if (m.status === "recognizing text") {
+            setOcrStatus(`読み取り中... ${Math.round(m.progress * 100)}%`);
+          }
+        },
+      });
+      setOcrStatus("OCR準備完了");
+    };
+
+    initWorker();
+
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
+
+  // OCR実行
+  const handleRunOcr = async () => {
+    if (!imageFile) {
+      alert("先に画像を選択してください");
+      return;
+    }
+
+    if (!workerRef.current) {
+      alert("OCR準備中です。少し待ってください");
+      return;
+    }
+
+    setIsOcrLoading(true);
+    setOcrText("");
+
+    try {
+      const result = await workerRef.current.recognize(imageFile);
+      setOcrText(result.data.text || "");
+      setOcrStatus("OCR完了");
+    } catch (e) {
+      console.error(e);
+      setOcrStatus("OCR失敗");
+    } finally {
+      setIsOcrLoading(false);
+    }
+  };
+
+  // OCR → 食材候補抽出
+  const candidateFoods = useMemo(() => {
+    if (!ocrText.trim()) return [];
+
+    return ocrText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length >= 2)
+      .filter((line) => !/[0-9]{2,}/.test(line))
+      .filter((line) => !line.includes("¥"))
+      .filter((line) => !line.includes("円"))
+      .filter((line) => !line.includes("TEL"))
+      .filter((line) => !line.includes("合計"))
+      .filter((line) => !line.includes("税"))
+      .filter((line) => !line.includes("レシート"))
+      .filter((line) => !/^\d+$/.test(line))
+      .filter((line, i, arr) => arr.indexOf(line) === i)
+      .slice(0, 10);
+  }, [ocrText]);
+
+  const handleSelectCandidate = (c) => {
+    setName(c);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !expiryDate) {
-      alert("食材名と賞味期限を入力してください。");
+    if (!name || !expiryDate) {
+      alert("入力してください");
       return;
     }
 
     const newItem = {
       id: crypto.randomUUID(),
-      name: name.trim(),
+      name,
       expiryDate,
-      memo: memo.trim(),
+      memo,
     };
 
     setItems((prev) => [...prev, newItem]);
@@ -67,240 +135,109 @@ function App() {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files?.[0] || null;
-    setImageFile(file);
-    setOcrText("");
-    setOcrStatus("");
-  };
+  const sortedItems = useMemo(() => {
+    return [...items].sort(
+      (a, b) => new Date(a.expiryDate) - new Date(b.expiryDate)
+    );
+  }, [items]);
 
-  const handleRunOcr = async () => {
-    if (!imageFile) {
-      alert("先に画像を選択してください。");
-      return;
-    }
-
-    setIsOcrLoading(true);
-    setOcrText("");
-    setOcrStatus("OCRを開始しています...");
-
-    let worker;
-
-    try {
-      worker = await createWorker("jpn+eng", 1, {
-        logger: (m) => {
-          if (m.status === "recognizing text") {
-            setOcrStatus(`文字を読み取り中... ${Math.round(m.progress * 100)}%`);
-          } else {
-            setOcrStatus(m.status);
-          }
-        },
-      });
-
-      const result = await worker.recognize(imageFile);
-      setOcrText(result.data.text || "");
-      setOcrStatus("OCRが完了しました。");
-    } catch (error) {
-      console.error(error);
-      setOcrStatus("OCRに失敗しました。画像を変えて再試行してください。");
-    } finally {
-      if (worker) {
-        await worker.terminate();
-      }
-      setIsOcrLoading(false);
-    }
-  };
-
-  const handleUseOcrText = () => {
-    if (!ocrText.trim()) {
-      alert("OCR結果がありません。");
-      return;
-    }
-
-    const firstLine = ocrText
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line.length > 0);
-
-    if (!firstLine) {
-      alert("使えそうな文字列が見つかりませんでした。");
-      return;
-    }
-
-    setName(firstLine);
-  };
-
-  const getDaysLeft = (dateString) => {
+  const getDaysLeft = (date) => {
     const today = new Date();
-    const target = new Date(dateString);
+    const target = new Date(date);
 
     today.setHours(0, 0, 0, 0);
     target.setHours(0, 0, 0, 0);
 
-    const diffMs = target - today;
-    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
   };
 
   return (
     <div className="app">
       <div className="container">
-        <header className="header">
-          <h1>Food Manager</h1>
-          <p>食材の賞味期限をシンプルに管理するアプリ</p>
-        </header>
+        <h1>Food Manager</h1>
 
         <section className="card">
-          <h2>画像から文字を読み取る</h2>
+          <h2>OCR</h2>
 
-          <div className="image-upload-area">
-            <label htmlFor="foodImage" className="file-label">
-              画像を選択
-            </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files[0])}
+          />
 
-            <input
-              id="foodImage"
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="file-input"
+          <button onClick={handleRunOcr}>
+            {isOcrLoading ? "解析中..." : "OCR実行"}
+          </button>
+
+          <p>{ocrStatus}</p>
+
+          {ocrText && (
+            <textarea
+              value={ocrText}
+              onChange={(e) => setOcrText(e.target.value)}
             />
+          )}
 
-            {imageFile && <p className="file-name">選択中: {imageFile.name}</p>}
-
-            {imagePreview ? (
-              <div className="preview-box">
-                <img
-                  src={imagePreview}
-                  alt="選択した画像のプレビュー"
-                  className="preview-image"
-                />
-              </div>
-            ) : (
-              <p className="empty">まだ画像が選択されていません。</p>
-            )}
-
-            <button
-              type="button"
-              className="submit-button"
-              onClick={handleRunOcr}
-              disabled={isOcrLoading}
-            >
-              {isOcrLoading ? "OCR実行中..." : "OCRを実行"}
-            </button>
-
-            {ocrStatus && <p className="status-text">{ocrStatus}</p>}
-
-            <div className="ocr-result-box">
-              <div className="ocr-result-header">
-                <h3>OCR結果</h3>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={handleUseOcrText}
-                >
-                  1行目を食材名に使う
+          {candidateFoods.length > 0 && (
+            <div>
+              <h3>候補</h3>
+              {candidateFoods.map((c) => (
+                <button key={c} onClick={() => handleSelectCandidate(c)}>
+                  {c}
                 </button>
-              </div>
-
-              {ocrText ? (
-                <textarea
-                  className="ocr-textarea"
-                  value={ocrText}
-                  onChange={(e) => setOcrText(e.target.value)}
-                />
-              ) : (
-                <p className="empty">まだOCR結果がありません。</p>
-              )}
+              ))}
             </div>
-          </div>
+          )}
         </section>
 
         <section className="card">
-          <h2>食材を手動で追加</h2>
+          <h2>追加</h2>
 
-          <form onSubmit={handleSubmit} className="form">
-            <div className="form-group">
-              <label htmlFor="name">食材名</label>
-              <input
-                id="name"
-                type="text"
-                placeholder="例: 牛乳"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
+          <form onSubmit={handleSubmit}>
+            <input
+              placeholder="食材名"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
 
-            <div className="form-group">
-              <label htmlFor="expiryDate">賞味期限</label>
-              <input
-                id="expiryDate"
-                type="date"
-                value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
-              />
-            </div>
+            <input
+              type="date"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(e.target.value)}
+            />
 
-            <div className="form-group">
-              <label htmlFor="memo">メモ</label>
-              <input
-                id="memo"
-                type="text"
-                placeholder="例: 冷蔵庫上段、開封済み"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-              />
-            </div>
+            <input
+              placeholder="メモ"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+            />
 
-            <button type="submit" className="submit-button">
-              追加する
-            </button>
+            <button type="submit">追加</button>
           </form>
         </section>
 
         <section className="card">
-          <h2>食材一覧</h2>
+          <h2>一覧</h2>
 
-          {sortedItems.length === 0 ? (
-            <p className="empty">まだ食材が登録されていません。</p>
-          ) : (
-            <ul className="item-list">
-              {sortedItems.map((item) => {
-                const daysLeft = getDaysLeft(item.expiryDate);
+          {sortedItems.map((item) => {
+            const days = getDaysLeft(item.expiryDate);
 
-                return (
-                  <li key={item.id} className="item">
-                    <div>
-                      <h3>{item.name}</h3>
-                      <p>賞味期限: {item.expiryDate}</p>
-                      {item.memo && <p>メモ: {item.memo}</p>}
-                      <p
-                        className={
-                          daysLeft < 0
-                            ? "expired"
-                            : daysLeft <= 3
-                            ? "warning"
-                            : "safe"
-                        }
-                      >
-                        {daysLeft < 0
-                          ? `${Math.abs(daysLeft)}日期限切れ`
-                          : daysLeft === 0
-                          ? "今日まで"
-                          : `あと${daysLeft}日`}
-                      </p>
-                    </div>
+            return (
+              <div key={item.id}>
+                <h3>{item.name}</h3>
+                <p>{item.expiryDate}</p>
+                <p>
+                  {days < 0
+                    ? "期限切れ"
+                    : days === 0
+                    ? "今日"
+                    : `${days}日`}
+                </p>
 
-                    <button
-                      className="delete-button"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      削除
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                <button onClick={() => handleDelete(item.id)}>削除</button>
+              </div>
+            );
+          })}
         </section>
       </div>
     </div>
