@@ -290,3 +290,18 @@ body {
   flex-direction: column;
   gap: 4px;
 }
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-button {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}

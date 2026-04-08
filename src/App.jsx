@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createWorker } from "tesseract.js";
 import "./App.css";
 import recipes from "./recipes";
+import foodShelfLife from "./foodShelfLife";
+import foodDictionary from "./foodDictionary";
 
 function App() {
   const [name, setName] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [memo, setMemo] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
   const [items, setItems] = useState(() => {
     const saved = localStorage.getItem("food-items");
@@ -42,15 +45,20 @@ function App() {
   // OCR worker初期化（1回だけ）
   useEffect(() => {
     const initWorker = async () => {
-      setOcrStatus("OCRエンジン準備中...");
-      workerRef.current = await createWorker("jpn+eng", 1, {
-        logger: (m) => {
-          if (m.status === "recognizing text") {
-            setOcrStatus(`読み取り中... ${Math.round(m.progress * 100)}%`);
-          }
-        },
-      });
-      setOcrStatus("OCR準備完了");
+      try {
+        setOcrStatus("OCRエンジン準備中...");
+        workerRef.current = await createWorker("jpn+eng", 1, {
+          logger: (m) => {
+            if (m.status === "recognizing text") {
+              setOcrStatus(`読み取り中... ${Math.round(m.progress * 100)}%`);
+            }
+          },
+        });
+        setOcrStatus("OCR準備完了");
+      } catch (error) {
+        console.error(error);
+        setOcrStatus("OCR初期化失敗");
+      }
     };
 
     initWorker();
@@ -59,6 +67,58 @@ function App() {
       workerRef.current?.terminate();
     };
   }, []);
+
+  const preprocessImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        img.src = event.target.result;
+      };
+
+      reader.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+
+      img.onload = () => {
+        const scale = 2;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          reject(new Error("Canvasの初期化に失敗しました"));
+          return;
+        }
+
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+
+          const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+          const boosted = gray > 160 ? 255 : gray < 110 ? 0 : gray;
+
+          data[i] = boosted;
+          data[i + 1] = boosted;
+          data[i + 2] = boosted;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      };
+
+      img.onerror = () => reject(new Error("画像の変換に失敗しました"));
+
+      reader.readAsDataURL(file);
+    });
+  };
 
   // OCR実行
   const handleRunOcr = async () => {
@@ -74,9 +134,14 @@ function App() {
 
     setIsOcrLoading(true);
     setOcrText("");
+    setOcrStatus("画像を前処理しています...");
 
     try {
-      const result = await workerRef.current.recognize(imageFile);
+      const processedImage = await preprocessImage(imageFile);
+
+      setOcrStatus("OCR実行中...");
+
+      const result = await workerRef.current.recognize(processedImage);
       setOcrText(result.data.text || "");
       setOcrStatus("OCR完了");
     } catch (e) {
@@ -88,51 +153,25 @@ function App() {
   };
 
   // OCR → 食材候補抽出
-  const candidateFoods = useMemo(() => {
-    if (!ocrText.trim()) return [];
+const candidateFoods = useMemo(() => {
+  if (!ocrText.trim()) return [];
 
-    const NG_WORDS = [
-      "tel",
-      "合計",
-      "小計",
-      "税込",
-      "税",
-      "消費税",
-      "レシート",
-      "ポイント",
-      "クレジット",
-      "visa",
-      "mastercard",
-      "現金",
-      "お預り",
-      "釣銭",
-      "担当",
-      "レジ",
-      "時刻",
-      "日時",
-      "店舗",
-      "領収書",
-    ];
+  const normalizeText = (text) =>
+    text
+      .replace(/\s+/g, "")
+      .replace(/[ァ-ン]/g, (s) =>
+        String.fromCharCode(s.charCodeAt(0) - 0x60)
+      );
 
-    return ocrText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length >= 2)
-      .filter((line) => line.length <= 20)
-      .filter((line) => !/[0-9]{3,}/.test(line))
-      .filter((line) => !/^\d+$/.test(line))
-      .filter((line) => !line.includes("¥"))
-      .filter((line) => !line.includes("円"))
-      .filter((line) => !line.includes("/"))
-      .filter((line) => !line.includes(":"))
-      .filter((line) => !line.includes("-"))
-      .filter((line) => {
-        const lower = line.toLowerCase();
-        return !NG_WORDS.some((word) => lower.includes(word));
-      })
-      .filter((line, i, arr) => arr.indexOf(line) === i)
-      .slice(0, 10);
-  }, [ocrText]);
+  const normalizedOcrText = normalizeText(ocrText);
+
+  const matchedFoods = foodDictionary.filter((food) => {
+    const normalizedFood = normalizeText(food);
+    return normalizedOcrText.includes(normalizedFood);
+  });
+
+  return [...new Set(matchedFoods)].slice(0, 8);
+}, [ocrText]);
 
   const suggestedRecipes = useMemo(() => {
     if (items.length === 0) return [];
@@ -191,10 +230,50 @@ function App() {
       .slice(0, 5);
   }, [items]);
 
+const normalizeName = (text) =>
+  text
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[ァ-ン]/g, (s) =>
+      String.fromCharCode(s.charCodeAt(0) - 0x60)
+    );
 
-  const handleSelectCandidate = (c) => {
-    setName(c);
-  };
+const handleSelectCandidate = (candidate) => {
+  const safeCandidate = String(candidate || "").trim();
+  if (!safeCandidate) return;
+
+  const normalizedCandidate = normalizeName(safeCandidate);
+
+  const matchedKey = Object.keys(foodShelfLife || {}).find((key) => {
+    const normalizedKey = normalizeName(key);
+    return (
+      normalizedCandidate === normalizedKey ||
+      normalizedCandidate.includes(normalizedKey) ||
+      normalizedKey.includes(normalizedCandidate)
+    );
+  });
+
+  const selectedName = matchedKey || safeCandidate;
+  setName(selectedName);
+
+  if (matchedKey && foodShelfLife[matchedKey]?.days != null) {
+    const { days } = foodShelfLife[matchedKey];
+
+    const today = new Date();
+    const target = new Date(today);
+    target.setDate(today.getDate() + days);
+
+    const yyyy = target.getFullYear();
+    const mm = String(target.getMonth() + 1).padStart(2, "0");
+    const dd = String(target.getDate()).padStart(2, "0");
+
+    setExpiryDate(`${yyyy}-${mm}-${dd}`);
+  } else {
+    setExpiryDate("");
+  }
+
+  setEditingId(null);
+};
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -204,14 +283,31 @@ function App() {
       return;
     }
 
-    const newItem = {
-      id: crypto.randomUUID(),
-      name,
-      expiryDate,
-      memo,
-    };
+    if (editingId) {
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === editingId
+            ? {
+              ...item,
+              name,
+              expiryDate,
+              memo,
+            }
+            : item
+        )
+      );
+      setEditingId(null);
+    } else {
+      const newItem = {
+        id: crypto.randomUUID(),
+        name,
+        expiryDate,
+        memo,
+      };
 
-    setItems((prev) => [...prev, newItem]);
+      setItems((prev) => [...prev, newItem]);
+    }
+
     setName("");
     setExpiryDate("");
     setMemo("");
@@ -219,6 +315,13 @@ function App() {
 
   const handleDelete = (id) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleEdit = (item) => {
+    setName(item.name);
+    setExpiryDate(item.expiryDate);
+    setMemo(item.memo || "");
+    setEditingId(item.id);
   };
 
   const sortedItems = useMemo(() => {
@@ -251,11 +354,21 @@ function App() {
             onChange={(e) => setImageFile(e.target.files[0])}
           />
 
-          <button onClick={handleRunOcr}>
+          <button type="button" onClick={handleRunOcr}>
             {isOcrLoading ? "解析中..." : "OCR実行"}
           </button>
 
           <p>{ocrStatus}</p>
+
+          {imagePreview && (
+            <div>
+              <img
+                src={imagePreview}
+                alt="preview"
+                style={{ maxWidth: "100%", marginTop: "8px" }}
+              />
+            </div>
+          )}
 
           {ocrText && (
             <textarea
@@ -264,15 +377,23 @@ function App() {
             />
           )}
 
-          {candidateFoods.length > 0 && (
+          {candidateFoods.length > 0 ? (
             <div>
               <h3>候補</h3>
-              {candidateFoods.map((c) => (
-                <button key={c} onClick={() => handleSelectCandidate(c)}>
+              {candidateFoods.map((c, index) => (
+                <button
+                  key={`${c}-${index}`}
+                  type="button"
+                  onClick={() => handleSelectCandidate(c)}
+                >
                   {c}
                 </button>
               ))}
             </div>
+          ) : (
+            <p className="empty">
+              候補を見つけられませんでした。手入力してください。
+            </p>
           )}
         </section>
 
@@ -298,7 +419,9 @@ function App() {
               onChange={(e) => setMemo(e.target.value)}
             />
 
-            <button type="submit">追加</button>
+            <button type="submit" className="submit-button">
+              {editingId ? "更新" : "追加"}
+            </button>
           </form>
         </section>
 
@@ -337,40 +460,52 @@ function App() {
         <section className="card">
           <h2>一覧</h2>
 
-          {sortedItems.map((item) => {
-            const days = getDaysLeft(item.expiryDate);
+          {sortedItems.length === 0 ? (
+            <p className="empty">まだ食材が登録されていません。</p>
+          ) : (
+            sortedItems.map((item) => {
+              const days = getDaysLeft(item.expiryDate);
 
-            return (
-              <div key={item.id} className="item">
-                <div className="item-left">
-                  <h3>{item.name}</h3>
-                  <p>{item.expiryDate}</p>
-                  <p
-                    className={
-                      days < 0
-                        ? "expired"
-                        : days <= 2
-                          ? "warning"
-                          : "safe"
-                    }
-                  >
-                    {days < 0
-                      ? `${Math.abs(days)}日過ぎてます`
-                      : days === 0
-                        ? "今日まで"
-                        : `あと${days}日`}
-                  </p>
+              return (
+                <div key={item.id} className="item">
+                  <div className="item-left">
+                    <h3>{item.name}</h3>
+                    <p>{item.expiryDate}</p>
+                    <p
+                      className={
+                        days < 0 ? "expired" : days <= 2 ? "warning" : "safe"
+                      }
+                    >
+                      {days < 0
+                        ? `${Math.abs(days)}日過ぎてます`
+                        : days === 0
+                          ? "今日まで"
+                          : `あと${days}日`}
+                    </p>
+                    {item.memo && <p>{item.memo}</p>}
+                  </div>
+
+                  <div className="item-actions">
+                    <button
+                      type="button"
+                      className="edit-button"
+                      onClick={() => handleEdit(item)}
+                    >
+                      編集
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delete-button"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      削除
+                    </button>
+                  </div>
                 </div>
-
-                <button
-                  className="delete-button"
-                  onClick={() => handleDelete(item.id)}
-                >
-                  削除
-                </button>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </section>
       </div>
     </div>
