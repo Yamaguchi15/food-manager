@@ -236,3 +236,57 @@ body {
 .recipe-item p {
   margin: 4px 0;
 }
+
+.expired {
+  color: #dc2626;
+  font-weight: bold;
+}
+
+.warning {
+  color: #f59e0b;
+  font-weight: bold;
+}
+
+.safe {
+  color: #16a34a;
+  font-weight: bold;
+}
+
+.recipe-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.recipe-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.recipe-badge.urgent {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.recipe-badge.soon {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

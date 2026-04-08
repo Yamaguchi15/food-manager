@@ -91,45 +91,106 @@ function App() {
   const candidateFoods = useMemo(() => {
     if (!ocrText.trim()) return [];
 
+    const NG_WORDS = [
+      "tel",
+      "合計",
+      "小計",
+      "税込",
+      "税",
+      "消費税",
+      "レシート",
+      "ポイント",
+      "クレジット",
+      "visa",
+      "mastercard",
+      "現金",
+      "お預り",
+      "釣銭",
+      "担当",
+      "レジ",
+      "時刻",
+      "日時",
+      "店舗",
+      "領収書",
+    ];
+
     return ocrText
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.length >= 2)
-      .filter((line) => !/[0-9]{2,}/.test(line))
+      .filter((line) => line.length <= 20)
+      .filter((line) => !/[0-9]{3,}/.test(line))
+      .filter((line) => !/^\d+$/.test(line))
       .filter((line) => !line.includes("¥"))
       .filter((line) => !line.includes("円"))
-      .filter((line) => !line.includes("TEL"))
-      .filter((line) => !line.includes("合計"))
-      .filter((line) => !line.includes("税"))
-      .filter((line) => !line.includes("レシート"))
-      .filter((line) => !/^\d+$/.test(line))
+      .filter((line) => !line.includes("/"))
+      .filter((line) => !line.includes(":"))
+      .filter((line) => !line.includes("-"))
+      .filter((line) => {
+        const lower = line.toLowerCase();
+        return !NG_WORDS.some((word) => lower.includes(word));
+      })
       .filter((line, i, arr) => arr.indexOf(line) === i)
       .slice(0, 10);
   }, [ocrText]);
 
   const suggestedRecipes = useMemo(() => {
-  if (items.length === 0) return [];
+    if (items.length === 0) return [];
 
-  const itemNames = items.map((item) => item.name.trim());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  return recipes
-    .map((recipe) => {
-      const matchedIngredients = recipe.ingredients.filter((ingredient) =>
-        itemNames.some((itemName) => itemName.includes(ingredient) || ingredient.includes(itemName))
-      );
+    const itemInfoList = items.map((item) => {
+      const target = new Date(item.expiryDate);
+      target.setHours(0, 0, 0, 0);
 
-      const score = matchedIngredients.length / recipe.ingredients.length;
+      const daysLeft = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
 
       return {
-        ...recipe,
-        matchedIngredients,
-        score,
+        ...item,
+        daysLeft,
       };
-    })
-    .filter((recipe) => recipe.matchedIngredients.length > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-}, [items]);
+    });
+
+    return recipes
+      .map((recipe) => {
+        const matchedItems = itemInfoList.filter((item) =>
+          recipe.ingredients.some(
+            (ingredient) =>
+              item.name.includes(ingredient) || ingredient.includes(item.name)
+          )
+        );
+
+        const matchedIngredients = matchedItems.map((item) => item.name);
+        const matchScore = matchedIngredients.length / recipe.ingredients.length;
+
+        let expiryBonus = 0;
+
+        matchedItems.forEach((item) => {
+          if (item.daysLeft <= 0) {
+            expiryBonus += 3;
+          } else if (item.daysLeft <= 2) {
+            expiryBonus += 2;
+          } else if (item.daysLeft <= 5) {
+            expiryBonus += 1;
+          }
+        });
+
+        const totalScore = matchScore * 100 + expiryBonus;
+
+        return {
+          ...recipe,
+          matchedIngredients,
+          matchScore,
+          expiryBonus,
+          totalScore,
+        };
+      })
+      .filter((recipe) => recipe.matchedIngredients.length > 0)
+      .sort((a, b) => b.totalScore - a.totalScore)
+      .slice(0, 5);
+  }, [items]);
+
 
   const handleSelectCandidate = (c) => {
     setName(c);
@@ -178,111 +239,140 @@ function App() {
 
   return (
     <div className="app">
-<div className="container">
-  <h1>Food Manager</h1>
+      <div className="container">
+        <h1>Food Manager</h1>
 
-  <section className="card">
-    <h2>OCR</h2>
+        <section className="card">
+          <h2>OCR</h2>
 
-    <input
-      type="file"
-      accept="image/*"
-      onChange={(e) => setImageFile(e.target.files[0])}
-    />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImageFile(e.target.files[0])}
+          />
 
-    <button onClick={handleRunOcr}>
-      {isOcrLoading ? "解析中..." : "OCR実行"}
-    </button>
-
-    <p>{ocrStatus}</p>
-
-    {ocrText && (
-      <textarea
-        value={ocrText}
-        onChange={(e) => setOcrText(e.target.value)}
-      />
-    )}
-
-    {candidateFoods.length > 0 && (
-      <div>
-        <h3>候補</h3>
-        {candidateFoods.map((c) => (
-          <button key={c} onClick={() => handleSelectCandidate(c)}>
-            {c}
+          <button onClick={handleRunOcr}>
+            {isOcrLoading ? "解析中..." : "OCR実行"}
           </button>
-        ))}
+
+          <p>{ocrStatus}</p>
+
+          {ocrText && (
+            <textarea
+              value={ocrText}
+              onChange={(e) => setOcrText(e.target.value)}
+            />
+          )}
+
+          {candidateFoods.length > 0 && (
+            <div>
+              <h3>候補</h3>
+              {candidateFoods.map((c) => (
+                <button key={c} onClick={() => handleSelectCandidate(c)}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="card">
+          <h2>追加</h2>
+
+          <form onSubmit={handleSubmit}>
+            <input
+              placeholder="食材名"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+
+            <input
+              type="date"
+              value={expiryDate}
+              onChange={(e) => setExpiryDate(e.target.value)}
+            />
+
+            <input
+              placeholder="メモ"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+            />
+
+            <button type="submit">追加</button>
+          </form>
+        </section>
+
+        <section className="card">
+          <h2>おすすめレシピ</h2>
+
+          {suggestedRecipes.length === 0 ? (
+            <p className="empty">
+              登録された食材から提案できるレシピはまだありません。
+            </p>
+          ) : (
+            <ul className="recipe-list">
+              {suggestedRecipes.map((recipe) => (
+                <li key={recipe.id} className="recipe-item">
+                  <div className="recipe-title-row">
+                    <h3>{recipe.name}</h3>
+
+                    {recipe.expiryBonus >= 3 ? (
+                      <span className="recipe-badge urgent">🔥 今作るべき</span>
+                    ) : recipe.expiryBonus >= 1 ? (
+                      <span className="recipe-badge soon">⏰ 早め推奨</span>
+                    ) : null}
+                  </div>
+                  <p>{recipe.description}</p>
+                  <p>必要食材: {recipe.ingredients.join("、")}</p>
+                  <p>一致した食材: {recipe.matchedIngredients.join("、")}</p>
+                  <p>一致率: {Math.round(recipe.matchScore * 100)}%</p>
+                  <p>期限優先ボーナス: {recipe.expiryBonus}</p>
+                  <p>総合スコア: {recipe.totalScore}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="card">
+          <h2>一覧</h2>
+
+          {sortedItems.map((item) => {
+            const days = getDaysLeft(item.expiryDate);
+
+            return (
+              <div key={item.id} className="item">
+                <div className="item-left">
+                  <h3>{item.name}</h3>
+                  <p>{item.expiryDate}</p>
+                  <p
+                    className={
+                      days < 0
+                        ? "expired"
+                        : days <= 2
+                          ? "warning"
+                          : "safe"
+                    }
+                  >
+                    {days < 0
+                      ? `${Math.abs(days)}日過ぎてます`
+                      : days === 0
+                        ? "今日まで"
+                        : `あと${days}日`}
+                  </p>
+                </div>
+
+                <button
+                  className="delete-button"
+                  onClick={() => handleDelete(item.id)}
+                >
+                  削除
+                </button>
+              </div>
+            );
+          })}
+        </section>
       </div>
-    )}
-  </section>
-
-  <section className="card">
-    <h2>追加</h2>
-
-    <form onSubmit={handleSubmit}>
-      <input
-        placeholder="食材名"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-
-      <input
-        type="date"
-        value={expiryDate}
-        onChange={(e) => setExpiryDate(e.target.value)}
-      />
-
-      <input
-        placeholder="メモ"
-        value={memo}
-        onChange={(e) => setMemo(e.target.value)}
-      />
-
-      <button type="submit">追加</button>
-    </form>
-  </section>
-
-  <section className="card">
-    <h2>おすすめレシピ</h2>
-
-    {suggestedRecipes.length === 0 ? (
-      <p className="empty">
-        登録された食材から提案できるレシピはまだありません。
-      </p>
-    ) : (
-      <ul className="recipe-list">
-        {suggestedRecipes.map((recipe) => (
-          <li key={recipe.id} className="recipe-item">
-            <h3>{recipe.name}</h3>
-            <p>{recipe.description}</p>
-            <p>必要食材: {recipe.ingredients.join("、")}</p>
-            <p>一致した食材: {recipe.matchedIngredients.join("、")}</p>
-            <p>一致率: {Math.round(recipe.score * 100)}%</p>
-          </li>
-        ))}
-      </ul>
-    )}
-  </section>
-
-  <section className="card">
-    <h2>一覧</h2>
-
-    {sortedItems.map((item) => {
-      const days = getDaysLeft(item.expiryDate);
-
-      return (
-        <div key={item.id}>
-          <h3>{item.name}</h3>
-          <p>{item.expiryDate}</p>
-          <p>
-            {days < 0 ? "期限切れ" : days === 0 ? "今日" : `${days}日`}
-          </p>
-
-          <button onClick={() => handleDelete(item.id)}>削除</button>
-        </div>
-      );
-    })}
-  </section>
-</div>
     </div>
   );
 }
